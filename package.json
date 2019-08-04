@@ -1,0 +1,13 @@
+{
+  "name": "giphygram",
+  "version": "1.0.0",
+  "description": "Project for PWA course",
+  "main": "index.js",
+  "author": "Guilherme <gui.mochila@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "http-server": "^0.11.1",
+    "rollup": "^1.18.0"
+  }
+}
