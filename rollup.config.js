@@ -1,24 +1,33 @@
-import multiInput from 'rollup-plugin-multi-input';
 import replace from 'rollup-plugin-replace';
-import {uglify} from 'rollup-plugin-uglify';
+import {terser} from 'rollup-plugin-terser';
 import rimraf from 'rimraf';
 
 const {version} = require('./package.json');
 
 rimraf.sync('public/build');
+rimraf.sync('public/sw.js');
 
-export default {
-  input: ['src/main.js'],
-  output: {
-    format: 'iife',
-    dir: 'public/build',
+export default [
+  {
+    input: ['src/main.js'],
+    output: {
+      format: 'iife',
+      dir: 'public/build',
+    },
+    plugins: [terser()],
   },
-  plugins: [
-    replace({
-      delimiters: ['{{', '}}'],
-      version,
-    }),
-    multiInput(),
-    uglify(),
-  ],
-};
+  {
+    input: ['src/sw.js'],
+    output: {
+      format: 'iife',
+      dir: 'public/',
+    },
+    plugins: [
+      replace({
+        delimiters: ['{{', '}}'],
+        version,
+      }),
+      terser(),
+    ],
+  },
+];
