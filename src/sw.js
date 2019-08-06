@@ -1,8 +1,11 @@
 // SW Version
 const cacheName = 'App__v{{version}}';
+let isOnline = true;
+let action;
 
 // Static cache - App Shell
 const urlsToCache = [
+  '/',
   'index.html',
   'build/main.js',
   'images/flame.png',
@@ -16,6 +19,7 @@ const urlsToCache = [
 self.addEventListener('install', onInstall);
 self.addEventListener('activate', onActivate);
 self.addEventListener('fetch', onFetch);
+self.addEventListener('message', onMessage);
 
 // **************
 /**
@@ -112,17 +116,100 @@ async function router(req) {
   let res;
   const url = new URL(req.url);
   const reqUrl = url.pathname;
-  const cache = await caches.open(cacheName);
 
-  res = await cache.match(url);
+  // Check if the request is from origin domain
+  if (url.origin === location.origin) {
+    res = await safeRequest(reqUrl, {cacheResponse: true, cacheFirst: true});
+    if (res) {
+      return res;
+    }
+  }
 
-  if (res) {
+  // Check if the request is to Giphy API endpoint
+  if (url.origin.match('api.giphy.com')) {
+    res = await safeRequest(url, {cacheResponse: true});
     return res;
   }
 
-  try {
-    res = await fetch(url);
-    cache.put(reqUrl, res.clone());
+  if (/media\d+.giphy.com\/media/.test(url.href)) {
+    res = await safeRequest(url, {cacheResponse: true, gif: true});
     return res;
-  } catch (error) {}
+  }
+
+  return await safeRequest(url);
+}
+
+/**
+ * Use fetch wrapped for safe request.
+ * @param {String} reqUrl
+ * @param {Object} cacheOptions
+ * @type {Object}
+ * @property {Boolean} cacheOptions.cacheFirst
+ * @property {Boolean} cacheOptions.cacheResponse
+ * @property {Boolean} cacheOptions.gif
+ */
+async function safeRequest(
+    reqUrl,
+    {cacheFirst = false, cacheResponse = false, gif = false} = {},
+) {
+  const cache = await caches.open(cacheName);
+  let res;
+
+  // If cacheFirst is defined, serves from cache.
+  if (cacheFirst) {
+    res = await cache.match(reqUrl);
+    if (res) {
+      return res;
+    }
+  }
+
+  // Check if user is online ** Using the online API, not liable on liefi.
+  if (isOnline) {
+    try {
+      res = await fetch(reqUrl);
+
+      // Is the response exists and it is okay?
+      if (res && res.ok) {
+        // CacheResponse and if it is a gif file,
+        // cache it in an different cache name.
+        if (cacheResponse && gif) {
+          const dynamicCache = await caches.open('App__giphys');
+          await dynamicCache.put(reqUrl, res.clone());
+          return res;
+        }
+
+        if (cacheResponse) {
+          await cache.put(reqUrl, res.clone());
+        }
+
+        return res;
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  // If it is not online serves the cache
+  // Check first if the request is for gif
+  if (/media\d+.giphy.com\/media/.test(reqUrl)) {
+    const dynamicCache = await caches.open('App__giphys');
+    res = dynamicCache.match(reqUrl);
+    return res;
+  }
+
+  res = await cache.match(reqUrl);
+  if (res) {
+    return res;
+  }
+}
+
+/**
+ * Message listener for message events;
+ * @param {object} data
+ */
+function onMessage({data}) {
+  if ('statusUpdate' in data) {
+    ({isOnline, action} = data.statusUpdate);
+    console.log(isOnline, action);
+  }
 }

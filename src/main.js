@@ -69,4 +69,28 @@ async function registerSW() {
   }
 }
 
-registerSW();
+/**
+ * Function ready to start app SW.
+ */
+function ready() {
+  registerSW();
+  window.addEventListener('online', function online() {
+    sendStatusUpdate({statusUpdate: {isOnline: true}});
+  });
+  window.addEventListener('offline', function offline() {
+    sendStatusUpdate({statusUpdate: {isOnline: false}});
+  });
+}
+
+/**
+ * Send status update to Service Worker
+ * @param {Object} msg
+ */
+async function sendStatusUpdate(msg) {
+  const svcWorker = await navigator.serviceWorker.getRegistration();
+  if (svcWorker.active) {
+    svcWorker.active.postMessage(msg);
+  }
+}
+
+ready();
