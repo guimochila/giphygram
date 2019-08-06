@@ -1,7 +1,6 @@
 // SW Version
 const cacheName = 'App__v{{version}}';
 let isOnline = true;
-let action;
 
 // Static cache - App Shell
 const urlsToCache = [
@@ -208,8 +207,29 @@ async function safeRequest(
  * @param {object} data
  */
 function onMessage({data}) {
+  let latestGiphys;
+  let action;
+
   if ('statusUpdate' in data) {
-    ({isOnline, action} = data.statusUpdate);
-    console.log(isOnline, action);
+    ({isOnline, action, latestGiphys} = data.statusUpdate);
+
+    if (action === 'clearGiphyCache') {
+      clearGiphysCache(latestGiphys);
+    }
+  }
+}
+
+/**
+ * Receive the Giphys array from API and only cache the latest images.
+ * @param {Array} giphys
+ */
+async function clearGiphysCache(giphys) {
+  const dynamicCache = await caches.open('App__giphys');
+  const cacheKeys = await dynamicCache.keys();
+
+  for (const key of cacheKeys) {
+    if (!giphys.includes(key.url)) {
+      dynamicCache.delete(key);
+    }
   }
 }

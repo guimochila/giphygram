@@ -23,9 +23,14 @@ function update() {
       // Empty Element
         $('#giphys').empty();
 
+        // Populate array of latest Giphys
+        const latestGiphys = [];
+
         // Loop Giphys
         $.each(res.data, function(i, giphy) {
-        // Add Giphy HTML
+        // Add to latestGiphys
+          latestGiphys.push(giphy.images.downsized_large.url);
+          // Add Giphy HTML
           $('#giphys').prepend(
               '<div class="col-sm-6 col-md-4 col-lg-3 p-1">' +
             '<img class="w-100 img-fluid" src="' +
@@ -33,6 +38,11 @@ function update() {
             '">' +
             '</div>',
           );
+        });
+
+        // Inform SW of the latest Giphys received.
+        sendStatusUpdate({
+          statusUpdate: {action: 'clearGiphyCache', latestGiphys},
         });
       })
 
