@@ -193,7 +193,12 @@ async function safeRequest(
   if (/media\d+.giphy.com\/media/.test(reqUrl)) {
     const dynamicCache = await caches.open('App__giphys');
     res = dynamicCache.match(reqUrl);
-    return res;
+
+    if (res) {
+      return res;
+    } else {
+      return safeRequest(reqUrl, {cacheResponse: true});
+    }
   }
 
   res = await cache.match(reqUrl);
